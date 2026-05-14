@@ -95,7 +95,10 @@ export class ClickUpApp extends App {
   protected async extendConfiguration(configuration: IConfigurationExtend): Promise<void> {
     const user = (await this.getAccessors().reader.getUserReader().getAppUser()) as IUser;
 
-    await Promise.all([this.getOauth2ClientInstance().setup(configuration), configuration.slashCommands.provideSlashCommand(new ClickUpCommand(this))]);
+    await configuration.slashCommands.provideSlashCommand(new ClickUpCommand(this));
+
+    this.getOauth2ClientInstance().setup(configuration).catch(() => {});
+
     configuration.api.provideApi({
       visibility: ApiVisibility.PUBLIC,
       security: ApiSecurity.UNSECURE,
