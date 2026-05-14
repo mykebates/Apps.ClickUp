@@ -1,4 +1,4 @@
-import { IAppAccessors, IAppInstallationContext, IConfigurationExtend, IHttp, ILogger, IModify, IPersistence, IRead } from '@rocket.chat/apps-engine/definition/accessors';
+import { IAppAccessors, IAppInstallationContext, IConfigurationExtend, IHttp, ILogger, IMessageExtender, IModify, IPersistence, IRead } from '@rocket.chat/apps-engine/definition/accessors';
 import { App } from '@rocket.chat/apps-engine/definition/App';
 import { IAppInfo } from '@rocket.chat/apps-engine/definition/metadata';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
@@ -10,15 +10,17 @@ import { ClickUp as ClickUpCommand } from './src/slashcommands/clickUp';
 import { IUIKitResponse, UIKitBlockInteractionContext, UIKitViewSubmitInteractionContext } from '@rocket.chat/apps-engine/definition/uikit';
 import { ExecuteBlockActionHandler } from './src/handlers/ExecuteBlockActionHandler';
 import { ExecuteViewSubmitHandler } from './src/handlers/ExecuteViewSubmitHandler';
+import { handlePreMessageSentExtend, messageHasClickUpTaskUrl } from './src/handlers/PreMessageSentExtendHandler';
 import { HttpStatusCode } from '@rocket.chat/apps-engine/definition/accessors';
 import { ApiSecurity, ApiVisibility } from '@rocket.chat/apps-engine/definition/api';
 import { clickupWebhooks} from './src/endpoints/incoming'
 import { getProfileUrl } from './src/lib/const';
 import { Block } from '@rocket.chat/ui-kit';
 import { getSectionBlock } from './src/helpers/blockBuilder';
+import { IMessage, IPreMessageSentExtend } from '@rocket.chat/apps-engine/definition/messages';
 
 
-export class ClickUpApp extends App {
+export class ClickUpApp extends App implements IPreMessageSentExtend {
   public botUsername: string;
   public botUser: IUser;
 
@@ -90,6 +92,14 @@ export class ClickUpApp extends App {
   public async executeViewSubmitHandler(context: UIKitViewSubmitInteractionContext, read: IRead, http: IHttp, persistence: IPersistence, modify: IModify) {
     const handler = new ExecuteViewSubmitHandler(this, read, http, modify, persistence);
     return await handler.run(this, context, read, http, persistence, modify);
+  }
+
+  public async checkPreMessageSentExtend(message: IMessage): Promise<boolean> {
+    return messageHasClickUpTaskUrl(message);
+  }
+
+  public async executePreMessageSentExtend(message: IMessage, extend: IMessageExtender, read: IRead, http: IHttp): Promise<IMessage> {
+    return handlePreMessageSentExtend(message, extend, read, http);
   }
 
   protected async extendConfiguration(configuration: IConfigurationExtend): Promise<void> {
